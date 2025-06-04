@@ -39,7 +39,7 @@ for i in range(len(LAYERS)-1):
     dw.append(m)
     dw_sum.append(dm_sum)
 
-def sig(x):
+def sig(x): 
     return 1 / (1 + math.exp(-x))
 
 def sig_p(x):
@@ -80,10 +80,14 @@ def forward_propagation(image, label, id):
     for i in range(len(LAYERS)-1):
         for j in range(LAYERS[i+1]): # compute next neuron's activation
             act[i+1][j] = sig(dot(act[i], w[i][j]) + b[i+1][j])
-    C = 0
+    C = 0 
     for i in range(LAYERS[N-1]):
         C += pow(act[N-1][i] - (1 if label == i else 0), 2)
-    print(f"Cost for batch {id} = {C}")
+    bestGuess = 0
+    for i in range(10):
+        if act[N-1][i] > act[N-1][bestGuess]:
+            bestGuess = i
+    print(f"Cost for batch {id} = {C}, best guess is {bestGuess}")
 
 BATCH_SIZE = 20
 
@@ -126,18 +130,23 @@ for id, data in enumerate(zip(train_x, train_y)):
 
     # every BATCH_SIZE, perform a mini-batch gradient descent
     if id % BATCH_SIZE == 0:
-        if id != 0:
-            gradient_descent(STEP_SIZE)
+        gradient_descent(STEP_SIZE)
         clear_sums()
     
-    # every BATCH_SIZE, print an image and see if the prediction is right
+    forward_propagation(image, label, id)
+
+    # every 2*BATCH_SIZE, print an image and see if the prediction is right
+    if id % (2*BATCH_SIZE) == 0:
+        for i in range(784):
+            print("#" if image[i] > 125 else '.', end = "\n" if i % 28 == 27 else "")
+        print(f"correct answer is {label}")
 
     # every 100, save the current weights and biases into a txt file
-    if id % BATCH_SIZE == 100:
+    if id % 100 == 0:
         with open("weights.txt", "w") as file:
             json.dump(w, file, indent=4)
+        with open("biases.txt", "w") as file:
+            json.dump(b, file, indent=4)
         
-
-    forward_propagation(image, label, id)
     back_propagation(image, label, id)
     contribute_to_sum()
