@@ -36,7 +36,7 @@ for i in range(len(LAYERS)-1):
     dm = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
     dm_sum = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
     w.append(m)
-    dw.append(m)
+    dw.append(dm)
     dw_sum.append(dm_sum)
 
 def sig(x): 
@@ -143,10 +143,9 @@ for id, data in enumerate(zip(train_x, train_y)):
 
     # every 100, save the current weights and biases into a txt file
     if id % 100 == 0:
-        with open("weights.txt", "w") as file:
-            json.dump(w, file, indent=4)
-        with open("biases.txt", "w") as file:
-            json.dump(b, file, indent=4)
+        cur_data = (w, b, id) # can start from training data (id+1) next time
+        with open("weights_and_biases.txt", "w") as file:
+            json.dump(cur_data, file, indent=4)
         
     back_propagation(image, label, id)
     contribute_to_sum()
