@@ -3,6 +3,7 @@ from loader import Loader
 from os.path import join
 import math
 import random
+import json
 
 # loading up data
 input_path = "C:/Users/blahb/.cache/kagglehub/datasets/hojjatk/mnist-dataset/versions/1"
@@ -122,10 +123,20 @@ STEP_SIZE = 0.1 # try first with constant step sizes
 
 for id, data in enumerate(zip(train_x, train_y)):
     image, label = data
+
+    # every BATCH_SIZE, perform a mini-batch gradient descent
     if id % BATCH_SIZE == 0:
         if id != 0:
             gradient_descent(STEP_SIZE)
         clear_sums()
+    
+    # every BATCH_SIZE, print an image and see if the prediction is right
+
+    # every 100, save the current weights and biases into a txt file
+    if id % BATCH_SIZE == 100:
+        with open("weights.txt", "w") as file:
+            json.dump(w, file, indent=4)
+        
 
     forward_propagation(image, label, id)
     back_propagation(image, label, id)
