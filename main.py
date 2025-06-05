@@ -90,9 +90,10 @@ def forward_propagation(image, label, id):
     for i in range(len(LAYERS)-1):
         for j in range(LAYERS[i+1]): # compute next neuron's activation
             if i == N-2:
-                act[i+1][j] = sig(dot(act[i], w[i][j]) + b[i+1][j])
+                act[i+1][j] = dot(act[i], w[i][j]) + b[i+1][j]
             else:
                 act[i+1][j] = relu(dot(act[i], w[i][j]) + b[i+1][j])
+    act[N-1] = softmax(act[N-1])
     C = 0 
     for i in range(LAYERS[N-1]):
         C += pow(act[N-1][i] - (1 if label == i else 0), 2)
@@ -107,10 +108,17 @@ def forward_propagation(image, label, id):
 
 BATCH_SIZE = 1
 
+def softmax(a):
+    max_a = max(a)
+    exps = [math.exp(i - max_a) for i in a]
+    exp_sum = sum(exps)
+    return [i / exp_sum for i in exps]
+
 def back_propagation(image, label, id):
     # start with last layer's dC / da
-    for i in range(LAYERS[N-1]):
-        da[N-1][i] = 2 * (act[N-1][i] - (1 if label==i else 0))
+    da[N-1] = act[N-1]
+    da[N-1][label] -= 1
+
     for i in range(N-2, -1, -1):
         for j in range(LAYERS[i+1]): 
             sum_within = dot(act[i], w[i][j]) + b[i+1][j]
@@ -153,10 +161,12 @@ for id, data in enumerate(zip(train_x, train_y)):
     forward_propagation(image, label, id)
 
     # every 2*BATCH_SIZE, print an image and see if the prediction is right
+    """
     if id % (2*BATCH_SIZE) == 0:
         for i in range(784):
             print("#" if image[i] > 125 else '.', end = "\n" if i % 28 == 27 else "")
         print(f"correct answer is {label}")
+    """
 
     # every 100, save the current weights and biases into a txt file
     if id % 100 == 0:
