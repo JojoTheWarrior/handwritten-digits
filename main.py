@@ -22,22 +22,52 @@ N = len(LAYERS)
 w = [] # weights
 dw = [] # dC / dw
 dw_sum = []
-b = [[random.random() * 2 - 1 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # biases
-db = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / db
-db_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
-act = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # activations
-da = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / dact
-da_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
+b = [] # biases; start at 0
+db = [] # dC / db
+db_sum = []
+act = [] # activations
+da = [] # dC / dact
+da_sum =[]
 C = 0
+STARTING_BATCH = 0
 
-# initializes w as randoms
-for i in range(len(LAYERS)-1):
-    m = [[random.random() * 2 - 1 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
-    dm = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
-    dm_sum = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
-    w.append(m)
-    dw.append(dm)
-    dw_sum.append(dm_sum)
+def load_initialization():
+    global w, dw, dw_sum, b, db, db_sum, act, da, da_sum, STARTING_BATCH
+    with open("weights_and_biases.txt", "r") as file:
+        saved_data = json.load(file)
+        w, b, STARTING_BATCH = saved_data # destructuring
+    # initialize differentials and activations to 0
+    for i in range(len(LAYERS)-1):
+        dm = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
+        dm_sum = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
+        dw.append(dm)
+        dw_sum.append(dm_sum)
+    b = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # biases; start at 0
+    db = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / db
+    db_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
+    act = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # activations
+    da = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / dact
+    da_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
+
+def random_initialization():
+    global w, dw, dw_sum, b, db, db_sum, act, da, da_sum, STARTING_BATCH
+    # initializes w as randoms
+    for i in range(len(LAYERS)-1):
+        m = [[random.gauss(0, math.sqrt(2 / LAYERS[i])) for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])] # He initialization to avoid exploding activation in recursive ReLUs
+        dm = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
+        dm_sum = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
+        w.append(m)
+        dw.append(dm)
+        dw_sum.append(dm_sum)
+    # start biases and activations at 0
+    b = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # biases; start at 0
+    db = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / db
+    db_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
+    act = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # activations
+    da = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / dact
+    da_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
+
+load_initialization()
 
 def sig(x): 
     if (x <= -10):
@@ -106,7 +136,7 @@ def forward_propagation(image, label, id):
         print(act[N-1][i], end=' ')
     print()
 
-BATCH_SIZE = 1
+BATCH_SIZE = 100
 
 def softmax(a):
     max_a = max(a)
@@ -148,9 +178,11 @@ def gradient_descent(step_size):
         for j in range(LAYERS[i]):
             b[i][j] -= step_size * db_sum[i][j]
     
-STEP_SIZE = 1 # try first with constant step sizes
+STEP_SIZE = 0.1 # try first with constant step sizes
 
 for id, data in enumerate(zip(train_x, train_y)):
+    if (id <= STARTING_BATCH):
+        continue
     image, label = data
 
     # every BATCH_SIZE, perform a mini-batch gradient descent
