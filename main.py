@@ -40,12 +40,12 @@ for i in range(len(LAYERS)-1):
     dw_sum.append(dm_sum)
 
 def sig(x): 
-    return max(0, x)
-    # return 1 / (1 + math.exp(-x))
+    # return max(0, x)
+    return 1 / (1 + math.exp(-x))
 
 def sig_p(x):
-    return 1 if x >= 0 else 0
-    # return math.exp(-x) / pow(1 + math.exp(-x), 2)
+    # return 1 if x >= 0 else 0
+    return math.exp(-x) / pow(1 + math.exp(-x), 2)
 
 def dot(x, y): # returns dot product of two vectors
     return sum(x[i]*y[i] for i in range(len(x)))
