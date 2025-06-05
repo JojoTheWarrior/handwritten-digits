@@ -22,7 +22,7 @@ N = len(LAYERS)
 w = [] # weights
 dw = [] # dC / dw
 dw_sum = []
-b = [[random.random() * 10 - 5 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # biases
+b = [[random.random() * 2 - 1 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # biases
 db = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / db
 db_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
 act = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # activations
@@ -40,12 +40,20 @@ for i in range(len(LAYERS)-1):
     dw_sum.append(dm_sum)
 
 def sig(x): 
-    # return max(0, x)
+    if (x <= -10):
+        return 1
     return 1 / (1 + math.exp(-x))
 
 def sig_p(x):
-    # return 1 if x >= 0 else 0
+    if abs(x) > 16:
+        return 0
     return math.exp(-x) / pow(1 + math.exp(-x), 2)
+
+def relu(x):
+    return max(0, x)
+
+def relu_p(x):
+    return 1 if x >= 0 else 0
 
 def dot(x, y): # returns dot product of two vectors
     return sum(x[i]*y[i] for i in range(len(x)))
@@ -81,7 +89,10 @@ def forward_propagation(image, label, id):
         act[0][i] = image[i] / 255.0 # convert grayscale to float
     for i in range(len(LAYERS)-1):
         for j in range(LAYERS[i+1]): # compute next neuron's activation
-            act[i+1][j] = sig(dot(act[i], w[i][j]) + b[i+1][j])
+            if i == N-2:
+                act[i+1][j] = sig(dot(act[i], w[i][j]) + b[i+1][j])
+            else:
+                act[i+1][j] = relu(dot(act[i], w[i][j]) + b[i+1][j])
     C = 0 
     for i in range(LAYERS[N-1]):
         C += pow(act[N-1][i] - (1 if label == i else 0), 2)
@@ -89,21 +100,25 @@ def forward_propagation(image, label, id):
     for i in range(10):
         if act[N-1][i] > act[N-1][bestGuess]:
             bestGuess = i
-    print(f"Cost for batch {id} = {C}, best guess is {bestGuess}")
+    print(f"Cost for batch {id} = {C}, best guess is {bestGuess} ", end='')
+    for i in range(10):
+        print(act[N-1][i], end=' ')
+    print()
 
-BATCH_SIZE = 20
+BATCH_SIZE = 1
 
 def back_propagation(image, label, id):
     # start with last layer's dC / da
     for i in range(LAYERS[N-1]):
-        da[N-1][i] = 2 * pow(act[N-1][i] - (1 if label==i else 0), 2)
+        da[N-1][i] = 2 * (act[N-1][i] - (1 if label==i else 0))
     for i in range(N-2, -1, -1):
-        for j in range(LAYERS[i+1]): # differentials for b
-            db[i+1][j] = da[i+1][j]
-        for j in range(LAYERS[i+1]): # differentials for w and a
-            for k in range(LAYERS[i]):
-                dw[i][j][k] = da[i+1][j] * sig_p(act[i][k] * w[i][j][k] + b[i+1][j]) * act[i][k]
-                da[i][k] += da[i+1][j] * sig_p(act[i][k] * w[i][j][k] + b[i+1][j]) * w[i][j][k]
+        for j in range(LAYERS[i+1]): 
+            sum_within = dot(act[i], w[i][j]) + b[i+1][j]
+            df = sig_p(sum_within) if i == N-2 else relu_p(sum_within)
+            db[i+1][j] = da[i+1][j] * df # differentials for b
+            for k in range(LAYERS[i]): # differentials for w and a
+                dw[i][j][k] = da[i+1][j] * df * act[i][k]
+                da[i][k] += da[i+1][j] * df * w[i][j][k]
 
 
 def contribute_to_sum():
@@ -125,7 +140,7 @@ def gradient_descent(step_size):
         for j in range(LAYERS[i]):
             b[i][j] -= step_size * db_sum[i][j]
     
-STEP_SIZE = 0.1 # try first with constant step sizes
+STEP_SIZE = 1 # try first with constant step sizes
 
 for id, data in enumerate(zip(train_x, train_y)):
     image, label = data
