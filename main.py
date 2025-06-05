@@ -17,7 +17,7 @@ train_x, train_y = loader.packing_pairs(loader.training_images_path, loader.trai
 test_x, test_y = loader.packing_pairs(loader.test_images_path, loader.test_labels_path)
 
 # start training
-LAYERS = [784, 392, 196, 98, 49, 25, 10]
+LAYERS = [784, 100, 10]
 N = len(LAYERS)
 w = [] # weights
 dw = [] # dC / dw
@@ -67,7 +67,7 @@ def random_initialization():
     da = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / dact
     da_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
 
-load_initialization()
+load_initialization() # toggle between random_initialization() and load_initialization()
 
 def sig(x): 
     if (x <= -10):
@@ -193,12 +193,10 @@ for id, data in enumerate(zip(train_x, train_y)):
     forward_propagation(image, label, id)
 
     # every 2*BATCH_SIZE, print an image and see if the prediction is right
-    """
-    if id % (2*BATCH_SIZE) == 0:
+    if id % (BATCH_SIZE) == 0:
         for i in range(784):
             print("#" if image[i] > 125 else '.', end = "\n" if i % 28 == 27 else "")
         print(f"correct answer is {label}")
-    """
 
     # every 100, save the current weights and biases into a txt file
     if id % 100 == 0:
