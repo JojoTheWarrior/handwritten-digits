@@ -145,7 +145,7 @@ def forward_propagation(image, label, id):
         print()
     
 
-BATCH_SIZE = 100
+BATCH_SIZE = 200
 
 def softmax(a):
     max_a = max(a)
@@ -187,7 +187,7 @@ def gradient_descent(step_size):
         for j in range(LAYERS[i]):
             b[i][j] -= step_size * db_sum[i][j]
     
-STEP_SIZE = 0.1 # try first with constant step sizes
+STEP_SIZE = 0.05 # try first with constant step sizes
 
 for id, data in enumerate(zip(train_x, train_y)):
     if (id <= STARTING_BATCH):
