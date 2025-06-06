@@ -111,7 +111,10 @@ def clear_sums():
         for j in range(LAYERS[i]):
             da_sum[i][j] = db_sum[i][j] = 0
 
+questions, correct = 0, 0
+
 def forward_propagation(image, label, id):
+    global questions, correct
     clear_activations() # reset activations
     clear_differentials() # resets differentials
     assert(len(image) == 784)
@@ -131,10 +134,16 @@ def forward_propagation(image, label, id):
     for i in range(10):
         if act[N-1][i] > act[N-1][bestGuess]:
             bestGuess = i
-    print(f"Cost for batch {id} = {C}, best guess is {bestGuess} ", end='')
-    for i in range(10):
-        print(act[N-1][i], end=' ')
-    print()
+    questions += 1
+    if bestGuess == label:
+        correct += 1
+    
+    if id % BATCH_SIZE == 0:
+        print(f"Cost for batch {id} = {C}, best guess is {bestGuess}, accuracy is {float(correct) / questions} ", end='')
+        for i in range(10):
+            print(act[N-1][i], end=' ')
+        print()
+    
 
 BATCH_SIZE = 100
 
