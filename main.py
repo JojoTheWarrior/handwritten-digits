@@ -2,8 +2,9 @@ import random
 from loader import Loader
 from os.path import join
 import math
-import random
+import numpy as np
 import json
+import time
 
 # loading up data
 input_path = "C:/Users/blahb/.cache/kagglehub/datasets/hojjatk/mnist-dataset/versions/1"
@@ -36,18 +37,32 @@ def load_initialization():
     with open("weights_and_biases.txt", "r") as file:
         saved_data = json.load(file)
         w, b, STARTING_BATCH = saved_data # destructuring
+
     # initialize differentials and activations to 0
     for i in range(len(LAYERS)-1):
         dm = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
         dm_sum = [[0 for _ in range(LAYERS[i])] for _ in range(LAYERS[i+1])]
         dw.append(dm)
         dw_sum.append(dm_sum)
-    b = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # biases; start at 0
+
     db = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / db
     db_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
     act = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # activations
     da = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / dact
     da_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
+
+    # converting lists to numpy arrays
+    w = np.array(w)
+    dw = np.array(dw)
+    dw_sum = np.array(dw_sum)
+
+    b = np.array(b)
+    db = np.array(db)
+    db_sum = np.array(db_sum)
+
+    act = np.array(act)
+    da = np.array(da)
+    da_sum = np.array(da_sum)
 
 def random_initialization():
     global w, dw, dw_sum, b, db, db_sum, act, da, da_sum, STARTING_BATCH
@@ -121,11 +136,11 @@ def forward_propagation(image, label, id):
     for i in range(LAYERS[0]):
         act[0][i] = image[i] / 255.0 # convert grayscale to float
     for i in range(len(LAYERS)-1):
-        for j in range(LAYERS[i+1]): # compute next neuron's activation
-            if i == N-2:
-                act[i+1][j] = dot(act[i], w[i][j]) + b[i+1][j]
-            else:
-                act[i+1][j] = relu(dot(act[i], w[i][j]) + b[i+1][j])
+        z = act[i] @ w[i] + b[i+1]
+        if i == N-2:
+            act[i+1] = z
+        else:
+            act[i+1] = relu(z)
     act[N-1] = softmax(act[N-1])
     C = 0 
     for i in range(LAYERS[N-1]):
@@ -139,13 +154,10 @@ def forward_propagation(image, label, id):
         correct += 1
     
     if id % BATCH_SIZE == 0:
-        print(f"Cost for batch {id} = {C}, best guess is {bestGuess}, accuracy is {float(correct) / questions} ", end='')
-        for i in range(10):
-            print(act[N-1][i], end=' ')
-        print()
+        print(f"Cost for batch {id} = {C}, best guess is {bestGuess}, accuracy is {float(correct) / questions} ")
     
 
-BATCH_SIZE = 200
+BATCH_SIZE = 100
 
 def softmax(a):
     max_a = max(a)
@@ -187,7 +199,7 @@ def gradient_descent(step_size):
         for j in range(LAYERS[i]):
             b[i][j] -= step_size * db_sum[i][j]
     
-STEP_SIZE = 0.05 # try first with constant step sizes
+STEP_SIZE = 0.03 # try first with constant step sizes
 
 for id, data in enumerate(zip(train_x, train_y)):
     if (id <= STARTING_BATCH):
@@ -204,14 +216,17 @@ for id, data in enumerate(zip(train_x, train_y)):
     # every 2*BATCH_SIZE, print an image and see if the prediction is right
     if id % (BATCH_SIZE) == 0:
         for i in range(784):
-            print("#" if image[i] > 125 else '.', end = "\n" if i % 28 == 27 else "")
+            pass
+            # print("#" if image[i] > 125 else '.', end = "\n" if i % 28 == 27 else "")
         print(f"correct answer is {label}")
 
-    # every 100, save the current weights and biases into a txt file
-    if id % 100 == 0:
+    # every 1000, save the current weights and biases into a txt file
+    if id % 2000 == 0:
         cur_data = (w, b, id) # can start from training data (id+1) next time
         with open("weights_and_biases.txt", "w") as file:
             json.dump(cur_data, file, indent=4)
+        print(f"progress saved at {id}")
         
     back_propagation(image, label, id)
+
     contribute_to_sum()
