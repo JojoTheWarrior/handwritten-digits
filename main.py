@@ -52,17 +52,17 @@ def load_initialization():
     da_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
 
     # converting lists to numpy arrays
-    w = np.array(w)
-    dw = np.array(dw)
-    dw_sum = np.array(dw_sum)
+    w = [np.array(x) for x in w]
+    dw = [np.array(x) for x in dw]
+    dw_sum = [np.array(x) for x in dw_sum]
 
-    b = np.array(b)
-    db = np.array(db)
-    db_sum = np.array(db_sum)
+    b = [np.array(x) for x in b]
+    db = [np.array(x) for x in db]
+    db_sum = [np.array(x) for x in db_sum]
 
-    act = np.array(act)
-    da = np.array(da)
-    da_sum = np.array(da_sum)
+    act = [np.array(x) for x in act]
+    da = [np.array(x) for x in da]
+    da_sum = [np.array(x) for x in da_sum]
 
 def random_initialization():
     global w, dw, dw_sum, b, db, db_sum, act, da, da_sum, STARTING_BATCH
@@ -84,21 +84,17 @@ def random_initialization():
 
 load_initialization() # toggle between random_initialization() and load_initialization()
 
-def sig(x): 
-    if (x <= -10):
-        return 1
-    return 1 / (1 + math.exp(-x))
+def sig(x):
+    return [1 if i <= -10 else (1 / 1 + math.exp(-i)) for i in x] 
 
 def sig_p(x):
-    if abs(x) > 16:
-        return 0
-    return math.exp(-x) / pow(1 + math.exp(-x), 2)
+    return [0 if abs(i) > 16 else math.exp(-i) / pow(1 + math.exp(-i), 2) for i in x]
 
 def relu(x):
-    return max(0, x)
+    return [max(0, i) for i in x]
 
 def relu_p(x):
-    return 1 if x >= 0 else 0
+    return [1 if i >= 0 else 0 for i in x]
 
 def dot(x, y): # returns dot product of two vectors
     return sum(x[i]*y[i] for i in range(len(x)))
@@ -136,7 +132,7 @@ def forward_propagation(image, label, id):
     for i in range(LAYERS[0]):
         act[0][i] = image[i] / 255.0 # convert grayscale to float
     for i in range(len(LAYERS)-1):
-        z = act[i] @ w[i] + b[i+1]
+        z = w[i] @ act[i] + b[i+1]
         if i == N-2:
             act[i+1] = z
         else:
@@ -171,13 +167,14 @@ def back_propagation(image, label, id):
     da[N-1][label] -= 1
 
     for i in range(N-2, -1, -1):
+        sum_within = w[i] @ act[i] + b[i+1]
+        df = sig_p(sum_within) if i == N-2 else relu_p(sum_within)
+        
         for j in range(LAYERS[i+1]): 
-            sum_within = dot(act[i], w[i][j]) + b[i+1][j]
-            df = sig_p(sum_within) if i == N-2 else relu_p(sum_within)
-            db[i+1][j] = da[i+1][j] * df # differentials for b
+            db[i+1][j] = da[i+1][j] * df[j] # differentials for b
             for k in range(LAYERS[i]): # differentials for w and a
-                dw[i][j][k] = da[i+1][j] * df * act[i][k]
-                da[i][k] += da[i+1][j] * df * w[i][j][k]
+                dw[i][j][k] = da[i+1][j] * df[j] * act[i][k]
+                da[i][k] += da[i+1][j] * df[j] * w[i][j][k]
 
 
 def contribute_to_sum():
