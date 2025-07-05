@@ -32,6 +32,22 @@ da_sum =[]
 C = 0
 STARTING_BATCH = 0
 
+def convert_to_np():
+    # converting lists to numpy arrays
+    global w, dw, dw_sum, b, db, db_sum, act, da, da_sum, STARTING_BATCH
+    w = [np.array(x) for x in w]
+    dw = [np.array(x) for x in dw]
+    dw_sum = [np.array(x) for x in dw_sum]
+
+    b = [np.array(x) for x in b]
+    db = [np.array(x) for x in db]
+    db_sum = [np.array(x) for x in db_sum]
+
+    act = [np.array(x) for x in act]
+    da = [np.array(x) for x in da]
+    da_sum = [np.array(x) for x in da_sum]
+
+
 def load_initialization():
     global w, dw, dw_sum, b, db, db_sum, act, da, da_sum, STARTING_BATCH
     with open("weights_and_biases.txt", "r") as file:
@@ -51,18 +67,8 @@ def load_initialization():
     da = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))] # dC / dact
     da_sum = [[0 for _ in range(LAYERS[i])] for i in range(len(LAYERS))]
 
-    # converting lists to numpy arrays
-    w = [np.array(x) for x in w]
-    dw = [np.array(x) for x in dw]
-    dw_sum = [np.array(x) for x in dw_sum]
+    convert_to_np()
 
-    b = [np.array(x) for x in b]
-    db = [np.array(x) for x in db]
-    db_sum = [np.array(x) for x in db_sum]
-
-    act = [np.array(x) for x in act]
-    da = [np.array(x) for x in da]
-    da_sum = [np.array(x) for x in da_sum]
 
 def random_initialization():
     global w, dw, dw_sum, b, db, db_sum, act, da, da_sum, STARTING_BATCH
@@ -85,16 +91,16 @@ def random_initialization():
 load_initialization() # toggle between random_initialization() and load_initialization()
 
 def sig(x):
-    return [1 if i <= -10 else (1 / 1 + math.exp(-i)) for i in x] 
+    return np.array([1 if i <= -10 else (1 / 1 + math.exp(-i)) for i in x])
 
 def sig_p(x):
-    return [0 if abs(i) > 16 else math.exp(-i) / pow(1 + math.exp(-i), 2) for i in x]
+    return np.array([0 if abs(i) > 16 else math.exp(-i) / pow(1 + math.exp(-i), 2) for i in x])
 
 def relu(x):
-    return [max(0, i) for i in x]
+    return np.array([max(0, i) for i in x])
 
 def relu_p(x):
-    return [1 if i >= 0 else 0 for i in x]
+    return np.array([1 if i >= 0 else 0 for i in x])
 
 def dot(x, y): # returns dot product of two vectors
     return sum(x[i]*y[i] for i in range(len(x)))
@@ -168,13 +174,20 @@ def back_propagation(image, label, id):
 
     for i in range(N-2, -1, -1):
         sum_within = w[i] @ act[i] + b[i+1]
+
         df = sig_p(sum_within) if i == N-2 else relu_p(sum_within)
+        df = np.array(df)
+
+        for j in range(LAYERS[i+1]):
+            df[j] *= da[i+1][j]
         
-        for j in range(LAYERS[i+1]): 
-            db[i+1][j] = da[i+1][j] * df[j] # differentials for b
-            for k in range(LAYERS[i]): # differentials for w and a
-                dw[i][j][k] = da[i+1][j] * df[j] * act[i][k]
-                da[i][k] += da[i+1][j] * df[j] * w[i][j][k]
+        # print(f"sum_within is : {sum_within.shape}, df is : {df.shape}, act is : {act[i].shape}, weights is {w[i].shape}")
+
+        dw[i] = np.outer(df, act[i])
+        da[i] = w[i].T @ df
+        db[i+1] = df
+
+        # print(f"sum_within is : {sum_within.shape}, df is : {df.shape}")
 
 
 def contribute_to_sum():
@@ -205,7 +218,7 @@ for id, data in enumerate(zip(train_x, train_y)):
 
     # every BATCH_SIZE, perform a mini-batch gradient descent
     if id % BATCH_SIZE == 0:
-        gradient_descent(STEP_SIZE)
+        # gradient_descent(STEP_SIZE)
         clear_sums()
     
     forward_propagation(image, label, id)
@@ -218,7 +231,7 @@ for id, data in enumerate(zip(train_x, train_y)):
         print(f"correct answer is {label}")
 
     # every 1000, save the current weights and biases into a txt file
-    if id % 2000 == 0:
+    if id % 1000 == 0:
         cur_data = (w, b, id) # can start from training data (id+1) next time
         with open("weights_and_biases.txt", "w") as file:
             json.dump(cur_data, file, indent=4)
